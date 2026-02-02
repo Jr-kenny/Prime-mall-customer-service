@@ -1,0 +1,79 @@
+# { "Depends": "py-genlayer:test" }
+from genlayer import *
+
+class PrimeMallIntelligentContract(gl.Contract):
+    # 1. Persistent fields MUST be declared in the class body with type annotations [1, 2]
+    mall_knowledge: str
+    faq_responses: TreeMap[str, str]  # Standard dict replaced with TreeMap [3, 4]
+    admin: Address  # Use the Address type for blockchain addresses [5]
+
+    def __init__(self):
+        # 2. Use gl.message.sender_address to initialize the admin [5]
+        self.admin = gl.message.sender_address
+
+        # 3. Initialize mall knowledge base
+        self.mall_knowledge = (
+            "About Prime Mall: Trusted marketplace with 500+ partner stores and 1M+ customers. "
+            "Mission: To connect customers with quality products and unbeatable value. "
+            "Terms: Users must be 18+. One account per individual. No bots allowed. "
+            "Marketplace Role: We facilitate transactions; vendors are responsible for product quality. "
+            "Privacy: We do not sell personal data. We use SSL encryption and are PCI-DSS compliant. "
+            "Refunds: 30-day window (60 for members). No returns on perishables, cosmetics, or gift cards. "
+            "Shipping: Standard (5-7 days), Express (2-3), International (10-21). "
+            "Support: support@primemall.com, 1-800-PRIME-MALL, and 24/7 Live Chat. "
+            "Membership: $99/year. Benefits include free shipping and priority support. "
+            "Disputes: Escalate to Prime Mall if vendor doesn't resolve in 48 hours."
+        )
+
+        # 4. Correctly populate the TreeMap storage [6]
+        self.faq_responses["account_creation"] = "Creating an account is easy! Simply click on the 'Sign Up' button at the top of the page, enter your email address and create a password."
+        self.faq_responses["payment_methods"] = "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, Apple Pay, and Google Pay."
+        self.faq_responses["shipping_time"] = "Standard shipping typically takes 5-7 business days. Express shipping options are available at checkout."
+        self.faq_responses["return_policy"] = "We offer a 30-day return policy for most items. Products must be unused and in original packaging."
+        self.faq_responses["order_tracking"] = "Once your order ships, you'll receive a confirmation email with a tracking number."
+        self.faq_responses["international_shipping"] = "Yes! We ship to over 100 countries worldwide. Costs and times vary by location."
+        self.faq_responses["contact_info"] = "Reach our team via the Contact page, email at support@primemall.com, or 24/7 live chat."
+        self.faq_responses["security_check"] = "We use SSL encryption and are PCI-DSS compliant to ensure your payment info is protected."
+
+    @gl.public.view
+    def get_faq_answer(self, faq_key: str) -> str:
+        # Use TreeMap's .get() method for safe retrieval [6]
+        return self.faq_responses.get(faq_key, "I'm sorry, that FAQ key does not exist.")
+
+    @gl.public.write
+    def chat_with_service(self, user_message: str) -> str:
+        # 5. Define the prompt using persistent storage [7]
+        prompt = (
+            "You are the Prime Mall Interactive Customer Service Agent. "
+            "Your ONLY output must be a single, unformatted JSON object. "
+            "DO NOT use markdown or any conversational filler outside the JSON. "
+            f"Use this Mall Knowledge Base: {self.mall_knowledge}. "
+            "Provide a helpful, professional response based ONLY on this data. "
+            "If the information is not present, refer them to support@primemall.com. "
+            "Structure: { \"response\": \"[Answer]\", \"intent\": \"[User Intent]\" }"
+            f"\n\nUser Message: {user_message}"
+        )
+
+        task = "Provide customer service responses based on Prime Mall's official policies and story."
+        criteria = (
+            "The response must be valid JSON. "
+            "The answer must accurately reflect the 'mall_knowledge' provided in the prompt."
+        )
+
+        # 6. Use the non-comparative equivalence principle with a lambda for the prompt [8, 9]
+        interaction_result: str = gl.eq_principle.prompt_non_comparative(
+            lambda: prompt,
+            task=task,
+            criteria=criteria
+        )
+        return interaction_result
+
+    @gl.public.view
+    def get_mall_knowledge(self) -> str:
+        return self.mall_knowledge
+
+    @gl.public.write
+    def update_knowledge(self, new_knowledge: str):
+        # 7. Use normalized Address comparison for admin checks [5, 10]
+        if gl.message.sender_address == self.admin:
+            self.mall_knowledge = new_knowledge
